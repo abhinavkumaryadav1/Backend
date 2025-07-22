@@ -32,10 +32,9 @@ const jokes = [
 app.get('/', (req, res) => {
     res.send('navigate to /jokes for amzing jokes');
 });
-app.get('/jokes', (req, res) => {
+app.get('/api/jokes', (req, res) => {
     res.json(jokes);
 });
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
 });
-module.exports = app; 
