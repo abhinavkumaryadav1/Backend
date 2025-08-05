@@ -1,9 +1,10 @@
 import {v2 as cloudinary} from 'cloudinary'
+import { log } from 'console';
 import fs from 'fs'
 
     // Configuration
     cloudinary.config({ 
-        cloud_name: process.CLOUDINARY_CLOUD_NAME, 
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
         api_key: process.env.CLOUDINARY_API_KEY, 
         api_secret: process.env.CLOUDINARY_API_SECRET, // Click 'View API Keys' above to copy your API secret
     });
@@ -17,6 +18,9 @@ import fs from 'fs'
                 resource_type:"auto",
             })
             console.log("file successfully uploaded on cloudinary: " , response.url);
+            console.log("cloudanary responce and its type:",typeof(response)," ",response);
+            
+            fs.unlinkSync(localFilePath)
             return response; // for user to extract information
 
         } catch (error) {
@@ -24,5 +28,7 @@ import fs from 'fs'
             return null;  
         }
     }
+
+    export {uplaodOnCloudinary}
 
      

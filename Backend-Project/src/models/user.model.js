@@ -59,8 +59,8 @@ type:String
 }, {timestamps:true})
 
 userSchema.pre("save", async function(next){ // **BOHOT kuch hai ya sikhne ko: next hota hai middleware ke liye. ab jab bhi hum kuch bhi change karenge to ye function chalega aur password ko hash karega but hume to jab password change karna ho ya first time password set karna ho tab hi hash karna hai isliye if condition lagayi hai aur negative check kiya hai ki agar password change nahi hua to next function call kar do aur aage badho.
-    if(!this.isModified("password")) return next()
-    this.password = bcrypt.hashSync(this.password, 10)
+    if(!this.isModified("password")) return next();
+    this.password = await bcrypt.hashSync(this.password, 10)
     next()
 })
 
