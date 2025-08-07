@@ -1,6 +1,7 @@
 import {Router} from "express"
-import { registerUser } from "../controllers/user.controller.js"
+import { loginUser, logoutUser, registerUser } from "../controllers/user.controller.js"
 import {upload} from "../middlewares/multer.middleware.js"
+import { verifyJWT } from "../middlewares/auth.middleware.js"
 
 const router = Router()
 
@@ -16,5 +17,12 @@ router.route("/register").post( //inserted middlware b/w controller passing for 
         }
     ]),
     registerUser) //controller
+
+router.route("/login").post(loginUser)
+
+
+//secured rotes
+
+router.route("/logout").post( verifyJWT , logoutUser ) //middleware lagaya hai bech me taki context mil jaye logout method ko ki koun se user ka refresh token hatana hai
 
 export default router
