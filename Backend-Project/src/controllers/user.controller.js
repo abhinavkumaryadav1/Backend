@@ -3,6 +3,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken"
 
 const generateAccessAndRefreshTokens = async(userId)=>{
 
@@ -15,15 +16,13 @@ const generateAccessAndRefreshTokens = async(userId)=>{
       await user.save({validateBeforeSave:false}) //Mongoose instance method that writes (or updates) the document to your MongoDB database.
       //validate wala is liye false hai kyuunki jab save karte hai to baki fields jaise pass username bhi vapas check karne lagta hai jo hume nahi karwana
 
-
+      return {accessToken,refreshToken};
 
 
   } catch (error) {
     throw new ApiError(500,"Something went wrong while generating Access and Refresh Token")
   }
   
-  return {accessToken,refreshToken};
-
 }
 
 
@@ -77,10 +76,9 @@ if (!avatarLocalPath) {
 
  const avatar = await uploadOnCloudinary(avatarLocalPath);
  const coverImage = coverImageLocalPath
-   ? await uploadOnCloudinary(coverImageLocalPath)
-   : null;
+   ? await uploadOnCloudinary(coverImageLocalPath):"";
 
- if (!avatar) {
+ if(!avatar) {
    throw new ApiError(400, "Avatar file is required");
  }
 
@@ -120,7 +118,7 @@ return res.status(201).json(
 
     const {email , username , password} = req.body
 
-    if(!email || !username) //mujhe dono se login karwana hai
+    if(!email && !username) //mujhe dono se login karwana hai
     {
       throw new ApiError(400,"Username or password required")
     }
@@ -144,7 +142,7 @@ if(!isPasswordValid)
   const {accessToken,refreshToken} = await generateAccessAndRefreshTokens(user._id)
 
   //loggedinuser is liye bnaya hai kyuni abhi jo refres token bnaya wo to agya but pehle user se refrnce liya tha to refresh abhi empty hi hai
-  const loggedInUser = await User.findById(user._id).select(" -password -refreshToken ")
+  const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
   //cokkies
   const options = {
     httpOnly:true,
@@ -197,5 +195,61 @@ const logoutUser = asyncHandler(async(req,res)=>{
 
 })
 
-export {registerUser,loginUser,logoutUser}
+const refreshAccessToken = asyncHandler(async(req,res)=>{
+     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+     if(!refreshAccessToken)
+     {
+      throw new ApiError(401,"Unauthorize Request")
+     }
+
+     try {
+      const decodedToken = jwt.verify(  // ye pura object  return karta hai jisme user ki details bhi hoti hai jaise user id
+       incomingRefreshToken,
+       process.env.REFRESH_TOKEN_SECRET,
+      )
+ 
+      const user = await User.findById(decodedToken?._id)
+ 
+      if(!user)
+      {
+       throw new ApiError(401," invalid refrsh token ")
+      }
+ 
+      if(incomingRefreshToken !== user?.refreshToken)
+      {
+       throw new ApiError(401,"Refresh token is expired or used")
+      }
+ 
+      const options = {
+       httpOnly:true,
+       secure:true
+      }
+ 
+      const {accessToken,newRefreshToken} = await generateAccessAndRefreshTokens(user._id);
+ 
+      res
+      .status(200)
+      .cookie("accessToken",accessToken,options)
+      .cookie("refreshToken",newRefreshToken,options)
+      .json(
+       new ApiResponse(
+         200,
+         {accessToken,refreshToken:newRefreshToken},
+         "Access token is refreshed successfully"
+       
+       )
+      )
+     } 
+     
+     catch (error) {
+      throw new ApiError(401,"invalid refresh token")
+     }
+
+
+
+
+})
+
+export {registerUser,loginUser,logoutUser,refreshAccessToken}
 
