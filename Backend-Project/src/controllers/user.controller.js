@@ -1,8 +1,8 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js"
-import {uplaodOnCloudinary} from "../utils/cloudinary.js"
-import { ApiResponce } from "../utils/ApiResponse.js";
+import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 const generateAccessAndRefreshTokens = async(userId)=>{
 
@@ -75,9 +75,9 @@ if (!avatarLocalPath) {
   throw new ApiError(400, "Avatar file is required");
 }
 
- const avatar = await uplaodOnCloudinary(avatarLocalPath);
+ const avatar = await uploadOnCloudinary(avatarLocalPath);
  const coverImage = coverImageLocalPath
-   ? await uplaodOnCloudinary(coverImageLocalPath)
+   ? await uploadOnCloudinary(coverImageLocalPath)
    : null;
 
  if (!avatar) {
@@ -105,8 +105,10 @@ if(!createdUser)
 }
 
 return res.status(201).json(
-   new ApiResponce(200,createdUser,"User registered succesfully")
+   new ApiResponse(200,createdUser,"User registered successfully")
 )
+
+})
 
   const loginUser = asyncHandler(async(req,res)=>{
 
@@ -154,7 +156,7 @@ if(!isPasswordValid)
   .cookie("refreshToken",refreshToken,options)
   .json(
 
-    new ApiResponce(200,
+    new ApiResponse(200,
       {
         user:loggedInUser , accessToken , refreshToken
       },
@@ -166,7 +168,6 @@ if(!isPasswordValid)
 
   })  
 
-})
 
 const logoutUser = asyncHandler(async(req,res)=>{
 
@@ -188,10 +189,10 @@ const logoutUser = asyncHandler(async(req,res)=>{
 
   return res
   .status(200)
-  .clearCokkie("accessToken",options) //data base se hatane ke baad ab current browser cokkies ko bhi clear kardiya
-  .clearCokkie("RefreshToken",options)
+  .clearCookie("accessToken",options) //data base se hatane ke baad ab current browser cokkies ko bhi clear kardiya
+  .clearCookie("refreshToken",options)
   .json(
-    new ApiResponce(200,{},"User LoggedOut Successfully")
+    new ApiResponse(200,{},"User LoggedOut Successfully")
   )
 
 })
