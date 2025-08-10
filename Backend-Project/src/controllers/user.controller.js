@@ -255,7 +255,7 @@ const changeCurrentPassword = asyncHandler(async(req,res)=>{
 
   const {oldPassword , newPassword} = req.body
 
-  const user = await User.findById(req.user?._id)
+  const user = await User.findById(req.user?._id) //req.user naya object bnaya hai auth middleware ne. routes me change paswword method se pehle middle ware lagega jaise logut method me lagaya tha tab work karega
 
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
