@@ -388,6 +388,95 @@ return res
 
 })
 
+const getUserChanelprofile = asyncHandler(async(req,res)=>{
 
-export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvatar,updateUsercoverImage}
+  const {username} = req.params
+  if(!username?.trim())
+  {
+    throw new ApiError(400,"username is missing")
+  }
+  
+  //MongoDB Aggreagation Pipeline code for subscriber and subscibed To
+
+  const channel = await User.aggregate(
+    [
+
+      {
+        $match:{
+        username:username?.toLowerCase() //tu general way may bhi kar sata hai pehle find kar user me fir store kar then match vagera kara but match directly dhonndhleta hai wo perticular document to kyun karnega find.
+      }
+      },
+
+      {
+        $lookup:{ //collection -> ware house & data models -> blueprint of how stored
+          from:"subscriptions", //-> subscription model ->at export lowecase hojata hai aur plural ho jata hai mongo db me yaad kar
+          localField: "_id",
+          foreignField: "channels",
+          as: "subscribers"
+        }
+      },
+
+      {
+        $lookup:{  // for how many user have subscribed
+          from:"subscriptions",
+          localField: "_id",
+          foreignField: "subscriber",
+          as: "subscribedto"
+        }
+      },
+
+      {
+        $addFields:{
+          subscribersCount:{
+            $size:"$subscribers"
+          },
+          channelsSubscribedToCount:{
+            $size:"%subscribedto"
+          },
+          isSubscribed:{
+            $cond:{
+              if:{$in:[req.user?._id , "$subscribers.subscriber"]}, // in dono array aur object me seach kar leta hai || subscribers to pipeline se aya aaur subscruber data model wala hai kyunki utha to vasie hi model se rha hai aur save karega to blue print bhi same hi hoga na
+              then:true,
+              else:false
+            }
+          }
+        }
+      },
+
+      {
+        $project:{ //projection saves and projects only that field which you mark true(saves time network load speed)
+          
+          fullName:1,
+          username:1,
+          subscribersCount:1,
+          channelsSubscribedToCount:1,
+          isSubscribed:1,
+          avatar:1,
+          coverImage:1,
+          email:1
+
+        }
+      }
+      
+
+    ]
+  )
+  if(!channel?.length)
+  {
+    throw new ApiError(404, "channel does not exists")
+  }
+      console.log("channel inforations extracted: ",channel);
+
+      return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,channel[0],"Channel details fetched successfully"
+        )
+      )
+      
+})
+
+
+export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvatar,updateUsercoverImage,getUserChanelprofile}
 
