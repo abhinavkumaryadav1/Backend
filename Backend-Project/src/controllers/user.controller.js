@@ -4,6 +4,7 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshTokens = async(userId)=>{
 
@@ -477,6 +478,70 @@ const getUserChanelprofile = asyncHandler(async(req,res)=>{
       
 })
 
+const getWatchHistory = asyncHandler(async (req,res)=>{
 
-export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvatar,updateUsercoverImage,getUserChanelprofile}
+const user = await User.aggregate(
+  [
+  {
+
+$match:{
+  _id: new mongoose.Types.ObjectId(req.user._id) // this is because if u see in mongo DB the actual id is string and looks like "object('3442434242')" and when we use mongoose it directly converts the ids to anf forth beacuse we only get number when we extract id 
+                                                // but whenever we are using aggregation pipeline the mongoose feature does not work so to have actual Id we have to use mongoose here.                                                
+
+}
+},
+
+{
+  $lookup:{
+
+    from:"videos",
+    localField:"watchHistory",
+    foreignField:"_id",
+    as:"watchHistory",
+    pipeline:[        //user se video me aggreagte kiya ab video se vapas user aggreagate karna hai data isliye NESTING LOOKUP AGRREAGATE
+      {
+        $lookup:{
+          from:"User",
+          localField:"owner",
+          foreignField:"_id",
+          as:"owner",
+          pipeline:[ //further one more pipeline for formated data we dont need everything. NOTE: we can also this this in 2nd stage of pipeline at the end. try it by yourself and find out the diffrence
+            {
+              $project:{
+                fullName:true,
+                username:true,
+                avatar:true
+              }
+            }
+          ]
+        }
+      },
+      {// for frontend optimisation because AP' gives array and evertime we have to extract first value from it
+        $addFields:{
+          owner:{
+            $first:"$owner"
+          }
+        }
+      }
+    ]
+  }
+}
+
+]
+)
+
+return res
+.status(200)
+.json(
+  new ApiResponse(
+    200,
+    user[0].watchHistory,
+    "Watch history fetched successfuly"
+  )
+)
+
+})
+
+
+export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvatar,updateUsercoverImage,getUserChanelprofile , getWatchHistory}
 
