@@ -174,7 +174,7 @@ const logoutUser = asyncHandler(async(req,res)=>{
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set:{refreshToken: undefined} //req jisme user object bna diya tha auth.middleware me wo aya id nikali aur databse se hata diya refresh tocken ko
+      $unset:{refreshToken: 1} //req jisme user object bna diya tha auth.middleware me wo aya id nikali aur databse se hata diya refresh tocken ko
     },
     {
       new:true
