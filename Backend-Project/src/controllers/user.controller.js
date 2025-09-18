@@ -46,14 +46,14 @@ const registerUser = asyncHandler(async (req,res) => {
  //you can also check one by one if they are empty and throw error but for now we are doing like this complex but little
  if (
    [fullName, username, email, password].some(
-     (field) => !field || field.trim() === ""
+     (field) => !field || field.trim() === "" //.some checks if anyine is not present it returns true
    )
  ) {
    throw new ApiError(400, "All fields are required");
  }
 
  const existedUser= await User.findOne({
-    $or: [{username} , {email}]
+    $or: [{username} , {email}] //$or is a MongoDB logical operator.It takes an array of conditions and returns documents that match at least one.
 })
 
 if(existedUser)
@@ -62,6 +62,7 @@ if(existedUser)
 }
  
 //like expres gives req.body access likewise multer gives req.files access
+//Multer is a Node.js middleware (usually used with Express) that helps you handle file uploads.
 
  const avatarLocalPath = req.files?.avatar[0]?.path; //constional check for if that thing exist then only do it & [0] isliye cuz in object [0]th index pe hota hai full path log karke dekh har ek ek chesse ko
 
@@ -83,7 +84,7 @@ if (!avatarLocalPath) {
    throw new ApiError(400, "Avatar file is required");
  }
 
- const user = await User.create({
+ const user = await User.create({ // .create(shortcut) use kiya hai to .save use karne ki zaroorat nahi hai
    fullName,
    avatar: avatar.url,
    coverImage : coverImage?.url || "", //kyunki humne kabhi check hi nahi kiya ki cover umage hai bhi ya nahi

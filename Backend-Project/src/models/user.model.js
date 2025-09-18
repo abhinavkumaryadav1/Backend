@@ -10,7 +10,7 @@ const userSchema = new Schema({
     unique:true,
     lowercase:true,
     trim:true,
-    index:true,
+    index:true, //B=Tree hash mapping eg: username:abhi ,ajay , b , c ,c ,c ,d.. -> maped to document 123 etc
    },
 
    email:{
@@ -33,7 +33,7 @@ const userSchema = new Schema({
     required:true,
    },
 
-   coverImgae:{
+   coverImage:{
     type:String,
    },
 

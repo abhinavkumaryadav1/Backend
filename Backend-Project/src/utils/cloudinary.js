@@ -25,6 +25,7 @@ import fs from 'fs'
 
         } catch (error) {
             fs.unlinkSync(localFilePath) //remove file from local server because it can hinder ther server(nahi upload hua dhang se to hata hi do na)
+            console.log("something went wrong while uploading file on cloudinary from cloudinary fucntion. error: ",error);
             return null;  
         }
     }
