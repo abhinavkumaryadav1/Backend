@@ -17,6 +17,8 @@ import fs from 'fs'
             const response = await cloudinary.uploader.upload(localFilePath,{
                 resource_type:"auto",
             })
+            delete response.api_key;
+            delete response.signature;
             console.log("file successfully uploaded on cloudinary: " , response.url);
             console.log("cloudanary responce and its type:",typeof(response)," ",response);
             

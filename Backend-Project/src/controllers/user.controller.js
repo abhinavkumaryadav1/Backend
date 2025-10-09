@@ -104,6 +104,8 @@ if(!createdUser)
 
 }
 
+// return res.redirect("/Homepage.html")
+
 return res.status(201).json(
    new ApiResponse(200,createdUser,"User registered successfully")
 )
