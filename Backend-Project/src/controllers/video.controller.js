@@ -1,4 +1,4 @@
-import mongoose, {isValidObjectId} from "mongoose"
+import mongoose, {disconnect, isValidObjectId} from "mongoose"
 import {Video} from "../models/video.model.js"
 import {User} from "../models/user.model.js"
 import {ApiError} from "../utils/ApiError.js"
@@ -11,12 +11,14 @@ const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     //TODO: get all videos based on query, sort, pagination
 
-    const allVideos = await Video.find({},{videoFile:1,thumbnail:1,_id:0})
+    // return plain JS objects and include _id so frontend has a stable id and title
+    const allVideos =await Video.find({},{videoFile:1,thumbnail:1,title:1})
     if(!allVideos)
     {
         throw new ApiError(500,"Something went wrong while fetching videos from database")
     }
-
+    // console.log("vid api res :",allVideos);
+    
     return res.status(200).json(new ApiResponse(200,allVideos,"All videos feathed successfully"))
 })
 
@@ -68,12 +70,87 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: get video by id
+
+    if (!isValidObjectId(videoId)) { // if someone hit endpoint with incorrect id say 1234abcd then it will start searching and make pipeline for this id which does not exist which will mess with the error codes and sabotage it thats why we are checking id and type through this inbuild function 
+        throw new ApiError(400, "Invalid videoId");
+    }
+
+    const video = await Video.findById(videoId);
+    const updatedVideo = video.toObject()
+    
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, updatedVideo, "video details fetched successfully")
+        );
+
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
     //TODO: update video details like title, description, thumbnail
+    const user = req.user?._id
+    if (!isValidObjectId(user)) {
+        throw new ApiError(400, "Invalid UserId");
+    }
+    const {videoId} = req.params;
+
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid videoId");
+    }
+
+    const video = await Video.findById(videoId)
+    
+    if(!video) throw new ApiError(400,"The Requested Video does not exist")
+
+    if(video.owner.toString() !== req.user._id.toString())   
+        {
+            throw new ApiError(404,"You are not Authorised to make this request")
+        } 
+
+        const {title , description} = req.body
+
+        if(!(title && description))
+        {
+            throw new ApiError(400,"Both Title and Description is required to Proceed")
+        }
+
+        const thumbnailLocalPath = req.file?.path
+        if (!thumbnailLocalPath) 
+        {
+        throw new ApiError(400, "thumbnaillll is required");
+        }
+
+        const thumbnailToBeDeleted = video.thumbnail.public_id
+        const newThumbnail = await uploadOnCloudinary(thumbnailLocalPath)
+        if (!newThumbnail) 
+        {
+        throw new ApiError(400, "Thumbnail Failed to update ");
+        }
+
+        const updatedVideo = await Video.findByIdAndUpdate(videoId,{
+
+            $set:{
+
+                    title,
+                    description,
+                    thumbnail:{
+                        public_id:newThumbnail.public_id,
+                        url:newThumbnail.url
+                    }
+
+                 }
+
+        },{new:true})
+
+                const deleteThumbnail =  await deleteOnCloudinary(thumbnailToBeDeleted)
+
+
+        if(!updatedVideo)
+        {
+            throw new ApiError(500,"Failed to Update  the Video")
+        }
+
+        return res.status(200).json(new ApiResponse(200,updatedVideo,"Video Updated Successfully"))
 
 })
 
@@ -149,10 +226,10 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 })
 
 export {
-    getAllVideos,
-    publishAVideo,
-    getVideoById,
-    updateVideo,
-    deleteVideo,
-    togglePublishStatus
+    getAllVideos,            //partialCompleted
+    publishAVideo,          //completed
+    getVideoById,          //incomplete
+    updateVideo,          //completed
+    deleteVideo,         //completed
+    togglePublishStatus //completed
 }
