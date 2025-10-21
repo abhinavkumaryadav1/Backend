@@ -11,15 +11,90 @@ const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     //TODO: get all videos based on query, sort, pagination
 
-    // return plain JS objects and include _id so frontend has a stable id and title
-    const allVideos =await Video.find({},{videoFile:1,thumbnail:1,title:1})
-    if(!allVideos)
-    {
-        throw new ApiError(500,"Something went wrong while fetching videos from database")
+
+    const pipeline = [];
+
+    // for using Full Text based search u need to create a search index in mongoDB atlas
+    if (query) {
+        pipeline.push({
+            $search: {
+                index: "search-videos",
+                text: {
+                    query: query,
+                    path: ["title", "description"] //search only on title, desc
+                }
+            }
+        });
     }
-    // console.log("vid api res :",allVideos);
+
+    if (userId) {
+        if (!isValidObjectId(userId)) {
+            throw new ApiError(400, "Invalid userId");
+        }
+
+        pipeline.push({
+            $match: {
+                owner: new mongoose.Types.ObjectId(userId)
+            }
+        });
+    }
+
+    // fetch videos only that are set isPublished as true
+    pipeline.push({ $match: { isPublished: true } });
+
+    //sortBy can be views, createdAt, duration
+    //sortType can be ascending(-1) or descending(1)
+    if (sortBy && sortType) {
+        pipeline.push({
+            $sort: {
+                [sortBy]: sortType === "asc" ? 1 : -1
+            }
+        });
+    } else {
+        pipeline.push({ $sort: { createdAt: -1 } });
+    }
+
+    pipeline.push(
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            "avatar.url": 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: "$ownerDetails"
+        }
+    )
+
+    const videoAggregate = Video.aggregate(pipeline);
+
+    const options = {
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10)
+    };
+
+    const video = await Video.aggregatePaginate(videoAggregate, options);
+
+
+    // return plain JS objects and include _id so frontend has a stable id and title
+    // const allVideos =await Video.find({},{videoFile:1,thumbnail:1,title:1})
+    // if(!allVideos)
+    // {
+    //     throw new ApiError(500,"Something went wrong while fetching videos from database")
+    // }
+    // // console.log("vid api res :",allVideos);
     
-    return res.status(200).json(new ApiResponse(200,allVideos,"All videos feathed successfully"))
+    return res.status(200).json(new ApiResponse(200,video,"All videos feathed successfully"))
 })
 
 //Video Upload and Publish
@@ -230,6 +305,6 @@ export {
     publishAVideo,          //completed
     getVideoById,          //incomplete
     updateVideo,          //completed
-    deleteVideo,         //completed
+    deleteVideo,         //Partialcompleted likes and comment
     togglePublishStatus //completed
 }
