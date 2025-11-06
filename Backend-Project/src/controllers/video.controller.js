@@ -431,6 +431,6 @@ export {
     publishAVideo,          //completed
     getVideoById,          //complete
     updateVideo,          //completed
-    deleteVideo,         //Partialcompleted likes and comment
+    deleteVideo,         //completed
     togglePublishStatus //completed
 }
