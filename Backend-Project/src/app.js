@@ -19,6 +19,7 @@ import userRouter from "./routes/user.routes.js"
 import videoRouter from "./routes/video.routes.js"
 import likeRouter from "./routes/like.routes.js"
 import commentRouter from "./routes/comment.routes.js"
+import subscriptionRouter from "./routes/subscription.routes.js"
 
 //Router declaration
                                     //standard practice for url kuch hai nhi ye api/v1
@@ -28,6 +29,8 @@ app.use("/api/v1/user",userRouter) // jaise hi url me /api/v1/user ayega to cont
 app.use("/api/v1/video",videoRouter) 
 app.use("/api/v1/likes", likeRouter);
 app.use("/api/v1/comment", commentRouter);
+app.use("/api/v1/subscriptions", subscriptionRouter);
+
 
 
 export {app}
